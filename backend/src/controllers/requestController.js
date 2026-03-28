@@ -51,3 +51,26 @@ exports.deleteRequest = (req, res) => {
     data: deleted[0]
   });
 };
+exports.updateRequest = (req, res) => {
+  const id = parseInt(req.params.id);
+  const { testType, location, deadline } = req.body;
+
+  // find request
+  const request = requests.find(req => req.id === id);
+
+  if (!request) {
+    return res.status(404).json({
+      message: "Request not found"
+    });
+  }
+
+  // update fields (only if provided)
+  if (testType) request.testType = testType;
+  if (location) request.location = location;
+  if (deadline) request.deadline = deadline;
+
+  res.json({
+    message: "Request updated successfully",
+    data: request
+  });
+};
