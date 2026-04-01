@@ -37,25 +37,32 @@ exports.getAllRequests = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-exports.deleteRequest = (req, res) => {
-  const id = parseInt(req.params.id);
+exports.deleteRequest = async (req, res) => {
+  const id = req.params.id;
 
-  // find index
-  const index = requests.findIndex(req => req.id === id);
+  try {
+    const result = await pool.query(
+      "DELETE FROM requests WHERE id = $1 RETURNING *",
+      [id]
+    );
 
-  if (index === -1) {
-    return res.status(404).json({
-      message: "Request not found"
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    res.json({
+      message: "Request deleted",
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error"
     });
   }
-
-  // remove item
-  const deleted = requests.splice(index, 1);
-
-  res.json({
-    message: "Request deleted successfully",
-    data: deleted[0]
-  });
 };
 exports.updateRequest = (req, res) => {
   const id = parseInt(req.params.id);
