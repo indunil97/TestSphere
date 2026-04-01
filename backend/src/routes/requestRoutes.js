@@ -6,6 +6,6 @@ const { createRequest, getAllRequests, deleteRequest,updateRequest } = require("
 router.post("/", createRequest);
 router.get("/", getAllRequests);
 router.delete("/:id",deleteRequest);
-router.put("/:id",updateRequest)
+router.put("/:id",updateRequest);
 
 module.exports = router;
