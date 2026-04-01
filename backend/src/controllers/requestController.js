@@ -1,8 +1,5 @@
 const pool = require("../config/db");
-
-
-// 🔹 CREATE REQUEST
-exports.createRequest = async (req, res) => {
+exports.createRequest = async(req, res) => {
   const { testType, location, deadline } = req.body;
 
   // validation
@@ -11,7 +8,6 @@ exports.createRequest = async (req, res) => {
       message: "All fields are required"
     });
   }
-
   try {
     const result = await pool.query(
       "INSERT INTO requests (test_type, location, deadline) VALUES ($1, $2, $3) RETURNING *",
@@ -25,21 +21,41 @@ exports.createRequest = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Server error"
-    });
+    res.status(500).json({ message: "Server error",error:error.message });
   }
+
 };
 
-
-
-// 🔹 GET ALL REQUESTS
 exports.getAllRequests = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM requests ORDER BY id ASC");
+    const result = await pool.query("SELECT * FROM requests");
 
     res.json({
       data: result.rows
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+exports.deleteRequest = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM requests WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    res.json({
+      message: "Request deleted",
+      data: result.rows[0]
     });
 
   } catch (error) {
@@ -49,12 +65,8 @@ exports.getAllRequests = async (req, res) => {
     });
   }
 };
-
-
-
-// 🔹 UPDATE REQUEST
-exports.updateRequest = async (req, res) => {
-  const id = req.params.id;
+exports.updateRequest = (req, res) => {
+  const id = parseInt(req.params.id);
   const { testType, location, deadline } = req.body;
 
   try {
