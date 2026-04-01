@@ -1,6 +1,5 @@
-let requests = [];
-
-exports.createRequest = (req, res) => {
+const pool = require("../config/db");
+exports.createRequest = async(req, res) => {
   const { testType, location, deadline } = req.body;
 
   if (!testType || !location || !deadline) {
@@ -8,28 +7,35 @@ exports.createRequest = (req, res) => {
       message: "All fields are required"
     });
   }
+  try {
+    const result = await pool.query(
+      "INSERT INTO requests (test_type, location, deadline) VALUES ($1, $2, $3) RETURNING *",
+      [testType, location, deadline]
+    );
 
-  const newRequest = {
-    id: Date.now(),
-    testType,
-    location,
-    deadline
-  };
-  
-  requests.push(newRequest);
+    res.status(201).json({
+      message: "Request created",
+      data: result.rows[0]
+    });
 
-  console.log("Saved Request:", newRequest);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error",error:error.message });
+  }
 
-  res.status(201).json({
-    message: "Request created successfully",
-    data: newRequest
-  });
 };
 
-exports.getAllRequests = (req, res) => {
-  res.json({
-    data: requests
-  });
+exports.getAllRequests = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM requests");
+
+    res.json({
+      data: result.rows
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 exports.deleteRequest = (req, res) => {
   const id = parseInt(req.params.id);
