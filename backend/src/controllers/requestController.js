@@ -1,6 +1,5 @@
-let requests = [];
-
-exports.createRequest = (req, res) => {
+const pool = require("../config/db");
+exports.createRequest = async(req, res) => {
   const { testType, location, deadline } = req.body;
 
   if (!testType || !location || !deadline) {
@@ -8,48 +7,62 @@ exports.createRequest = (req, res) => {
       message: "All fields are required"
     });
   }
+  try {
+    const result = await pool.query(
+      "INSERT INTO requests (test_type, location, deadline) VALUES ($1, $2, $3) RETURNING *",
+      [testType, location, deadline]
+    );
 
-  const newRequest = {
-    id: Date.now(),
-    testType,
-    location,
-    deadline
-  };
-  
-  requests.push(newRequest);
-
-  console.log("Saved Request:", newRequest);
-
-  res.status(201).json({
-    message: "Request created successfully",
-    data: newRequest
-  });
-};
-
-exports.getAllRequests = (req, res) => {
-  res.json({
-    data: requests
-  });
-};
-exports.deleteRequest = (req, res) => {
-  const id = parseInt(req.params.id);
-
-  // find index
-  const index = requests.findIndex(req => req.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({
-      message: "Request not found"
+    res.status(201).json({
+      message: "Request created",
+      data: result.rows[0]
     });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error",error:error.message });
   }
 
-  // remove item
-  const deleted = requests.splice(index, 1);
+};
 
-  res.json({
-    message: "Request deleted successfully",
-    data: deleted[0]
-  });
+exports.getAllRequests = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM requests");
+
+    res.json({
+      data: result.rows
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+exports.deleteRequest = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM requests WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    res.json({
+      message: "Request deleted",
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
 };
 exports.updateRequest = (req, res) => {
   const id = parseInt(req.params.id);
