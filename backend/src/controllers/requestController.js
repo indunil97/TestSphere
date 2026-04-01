@@ -2,6 +2,7 @@ const pool = require("../config/db");
 exports.createRequest = async(req, res) => {
   const { testType, location, deadline } = req.body;
 
+  // validation
   if (!testType || !location || !deadline) {
     return res.status(400).json({
       message: "All fields are required"
@@ -68,22 +69,61 @@ exports.updateRequest = (req, res) => {
   const id = parseInt(req.params.id);
   const { testType, location, deadline } = req.body;
 
-  // find request
-  const request = requests.find(req => req.id === id);
+  try {
+    const result = await pool.query(
+      `UPDATE requests 
+       SET test_type = $1, location = $2, deadline = $3 
+       WHERE id = $4 
+       RETURNING *`,
+      [testType, location, deadline, id]
+    );
 
-  if (!request) {
-    return res.status(404).json({
-      message: "Request not found"
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    res.json({
+      message: "Request updated",
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error"
     });
   }
+};
 
-  // update fields (only if provided)
-  if (testType) request.testType = testType;
-  if (location) request.location = location;
-  if (deadline) request.deadline = deadline;
 
-  res.json({
-    message: "Request updated successfully",
-    data: request
-  });
+
+// 🔹 DELETE REQUEST
+exports.deleteRequest = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM requests WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Request not found"
+      });
+    }
+
+    res.json({
+      message: "Request deleted",
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
 };
